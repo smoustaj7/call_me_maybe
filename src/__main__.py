@@ -7,6 +7,17 @@ from .parsing import FunctionLibrary, parse_prompts
 from llm_sdk import Small_LLM_Model
 
 
+def llm_prompt(func_def: list[dict], user_prompt: str) -> str:
+    base_instruction = (
+        "You are an AI assistant that selects the best function to answer a user's question.\n"
+        "You must choose from the following available functions and provide your answer as a JSON object.\n\n"
+    )
+    formatted_functions = "Available Functions:\n" + json.dumps(func_def, indent=2)
+    question_section = f"\n\nUser Question: {user_prompt}\n"
+    json_priming = "Answer:\n{"
+    final_llm_input = base_instruction + formatted_functions + question_section + json_priming
+    return final_llm_input
+
 def main() -> None:
 
     parser = argparse.ArgumentParser(
@@ -58,6 +69,16 @@ def main() -> None:
         return
 
     model = Small_LLM_Model()
+    try:
+        vocab_path = model.get_path_to_vocab_file()
+        with open(vocab_path, 'r') as f:
+            vocab = json.load(f)
+            print(f"Loaded vocab from: {vocab_path}")
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        print(f"Error processing vocabulary file: {e}", file=stderr)
+        return
+    print(definitions)
+
 
 
 if __name__ == "__main__":

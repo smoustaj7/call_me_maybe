@@ -11,7 +11,7 @@ venv/
 
 # Environment Manager / UV
 .uv/
-
+uv.lock
 # Build and Distribution Directories
 dist/
 build/
