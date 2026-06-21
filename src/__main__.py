@@ -91,10 +91,15 @@ def main() -> None:
         tracker = JSONSchemaTracker(definitions, vocab)
         tracker.update_states("{")
 
-        while tracker.current_state != STATE_DONE:
+        max_steps = 100
+        steps = 0
+        while tracker.current_state != STATE_DONE and steps < max_steps:
             logits = model.get_logits_from_input_ids(input_ids)
             allowed_ids = set(tracker.get_allowed_token_ids())
-            print(f"state: {tracker.current_state} | allowed: {len(allowed_ids)} | generated: {tracker.generated_text!r}")
+            print(f"state: {tracker.current_state} | allowed: ", end="")
+            print(
+                f"{len(allowed_ids)} | generated: {tracker.generated_text!r}"
+            )
             masked_logits = [
                 l if i in allowed_ids else float('-inf')
                 for i, l in enumerate(logits)
@@ -105,6 +110,7 @@ def main() -> None:
             next_token = model.decode([next_id])
             tracker.update_states(next_token)
             input_ids.append(next_id)
+            steps += 1
 
         prompt_length = len(model.encode(prompt).tolist()[0])
         generated_ids = input_ids[prompt_length:]

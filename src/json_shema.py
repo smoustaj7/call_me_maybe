@@ -21,6 +21,7 @@ class JSONSchemaTracker:
         self.chosen_function = None
         self.current_key_buffer = ""
         self.current_value_buffer = ""
+        self.keys_seen = set()
 
     def update_states(self, last_token: str):
         for char in last_token:
@@ -70,6 +71,7 @@ class JSONSchemaTracker:
                     if self.current_key_buffer == "name":
                         self.chosen_function = self.current_value_buffer
 
+                    self.keys_seen.add(self.current_key_buffer)
                     self.current_state = STATE_EXPECT_COMMA_OR_CLOSE
                 else:
                     self.current_value_buffer += char
@@ -84,6 +86,7 @@ class JSONSchemaTracker:
                 if char.isdigit() or char == '.':
                     self.current_value_buffer += char
                 else:
+                    self.keys_seen.add(self.current_key_buffer)
                     if char == ',':
                         self.current_state = STATE_EXPECT_KEY
                     elif char == '}':
@@ -96,6 +99,7 @@ class JSONSchemaTracker:
                     else "false"
                 self.current_value_buffer += char
                 if self.current_value_buffer == target:
+                    self.keys_seen.add(self.current_key_buffer)
                     self.current_state = STATE_EXPECT_COMMA_OR_CLOSE
 
     def get_allowed_token_ids(self) -> list[int]:
@@ -115,15 +119,10 @@ class JSONSchemaTracker:
                     allowed_ids.append(token_id)
 
             elif self.current_state == STATE_IN_KEY:
-                valid_keys = ["name"]
-                if self.chosen_function:
-                    func_def = next(
-                        f for f in self.functions
-                        if f["name"] == self.chosen_function
-                        )
-                    valid_keys += list(
-                        func_def["parameters"].keys()
-                        )
+                valid_keys = [
+                    k for k in self._get_required_keys()
+                    if k not in self.keys_seen
+                    ]
                 if token_str == '"':
                     if self.current_key_buffer in valid_keys:
                         allowed_ids.append(token_id)
@@ -170,20 +169,35 @@ class JSONSchemaTracker:
                         if is_valid_prefix:
                             allowed_ids.append(token_id)
                 else:
-                    if token_str == '"':
-                        allowed_ids.append(token_id)
-                    elif not any(c in token_str for c in ['"']):
-                        allowed_ids.append(token_id)
+                    MAX_STRING_LEN = 25
+                    if len(self.current_value_buffer) >= MAX_STRING_LEN:
+                        if token_str == '"':
+                            allowed_ids.append(token_id)
+                    else:
+                        if token_str == '"':
+                            allowed_ids.append(token_id)
+                        elif not any(c in token_str for c in ['"']):
+                            allowed_ids.append(token_id)
 
             elif self.current_state == STATE_EXPECT_COMMA_OR_CLOSE:
-                if token_str in (',', '}'):
-                    allowed_ids.append(token_id)
+                remaining = set(self._get_required_keys()) - self.keys_seen
+                if remaining:
+                    if token_str == ',':
+                        allowed_ids.append(token_id)
+                else:
+                    if token_str in (',', '}'):
+                        allowed_ids.append(token_id)
 
             elif self.current_state == STATE_IN_NUMBER_VALUE:
                 if token_str.isdigit() or token_str == '.':
                     allowed_ids.append(token_id)
-                if token_str in (',', '}'):
-                    allowed_ids.append(token_id)
+                else:
+                    remaining = set(self._get_required_keys()) \
+                        - self.keys_seen - {self.current_key_buffer}
+                    if remaining and token_str == ',':
+                        allowed_ids.append(token_id)
+                    elif not remaining and token_str == '}':
+                        allowed_ids.append(token_id)
 
             elif self.current_state == STATE_IN_BOOL_VALUE:
                 target = "true" if self.current_value_buffer.startswith('t') \
@@ -203,3 +217,10 @@ class JSONSchemaTracker:
             )
         props = func_def["parameters"]
         return props.get(self.current_key_buffer, {}).get("type", "string")
+
+    def _get_required_keys(self):
+        if not self.chosen_function:
+            return ["name"]
+        func_def = next(f for f in self.functions
+                        if f["name"] == self.chosen_function)
+        return ["name"] + list(func_def["parameters"].keys())
