@@ -5,6 +5,7 @@ from sys import stderr
 from pydantic import ValidationError
 from .parsing import FunctionLibrary, parse_prompts
 from llm_sdk import Small_LLM_Model
+from .tockenizer import encode, bytes_to_unicode, load_merges, decode
 from .json_shema import JSONSchemaTracker, STATE_DONE
 
 
@@ -83,11 +84,19 @@ def main() -> None:
     except (FileNotFoundError, json.JSONDecodeError) as e:
         print(f"Error processing vocabulary file: {e}", file=stderr)
         return
+    merges = load_merges(
+        "/goinfre/smoustaj/cache/huggingface/hub/models--Qwen--Qwen3-0.6B/"
+        "snapshots/c1899de289a04d12100db370d81485cdf75e47ca/merges.txt"
+    )
+    inv_vocab = {v: k for k, v in vocab.items()}
+    byte_decoder = {v: k for k, v in bytes_to_unicode().items()}
     results = []
+    byte_encoder = bytes_to_unicode()
 
     for prompt_str in prompts:
         prompt = llm_prompt(definitions, prompt_str)
-        input_ids = model.encode(prompt).tolist()[0]
+        input_ids = encode(prompt, byte_encoder, merges, vocab)
+        prompt_length = len(input_ids)
         tracker = JSONSchemaTracker(definitions, vocab)
         tracker.update_states("{")
 
@@ -107,14 +116,13 @@ def main() -> None:
             next_id = max(
                 range(len(masked_logits)), key=lambda i: masked_logits[i]
                 )
-            next_token = model.decode([next_id])
+            next_token = decode([next_id], inv_vocab, byte_decoder)
             tracker.update_states(next_token)
             input_ids.append(next_id)
             steps += 1
 
-        prompt_length = len(model.encode(prompt).tolist()[0])
         generated_ids = input_ids[prompt_length:]
-        generated_json = "{" + model.decode(generated_ids)
+        generated_json = "{" + decode(generated_ids, inv_vocab, byte_decoder)
 
         results.append({
             "prompt": prompt_str,
