@@ -28,8 +28,8 @@ def text_to_bpe_alphabet(text: str, byte_encoder: dict) -> str:
     converts a string into a sequence of BPE alphabet characters.
     """
     bpe_alphabet = ""
-    for char in text:
-        bpe_alphabet += byte_encoder[ord(char)]
+    for byte in text.encode("utf-8"):
+        bpe_alphabet += byte_encoder[byte]
     return bpe_alphabet
 
 
@@ -48,13 +48,6 @@ def load_merges(merges_path: str) -> dict:
                 continue
             merges[(parts[0], parts[1])] = i
     return merges
-
-
-merges_path = (
-    "/goinfre/smoustaj/cache/huggingface/hub/models--Qwen--Qwen3-0.6B/"
-    "snapshots/c1899de289a04d12100db370d81485cdf75e47ca/merges.txt"
-)
-merges = load_merges(merges_path)
 
 
 def apply_bpe_merges(symbols: list[str], merges: dict) -> list[str]:
@@ -92,7 +85,8 @@ def split_into_chunks(bpe_text: str) -> list[str]:
     return chunks
 
 
-def encode(text: str, byte_encoder: dict, merges: dict, vocab: dict) -> list[int]:
+def encode(text: str, byte_encoder: dict, merges: dict, vocab: dict)\
+        -> list[int]:
     bpe_text = text_to_bpe_alphabet(text, byte_encoder)
     chunks = split_into_chunks(bpe_text)
 
