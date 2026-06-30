@@ -52,3 +52,4 @@ def get_valid_tokens_for_boolean(
                 valid_tokens.append(token_id)
                 break
     return valid_tokens
+

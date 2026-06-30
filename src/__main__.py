@@ -91,7 +91,7 @@ def main() -> None:
         selected = functions_map.get(function_name)
         if selected is None:
             print(
-                f"Warning: could not find function '{function_name}', "
+                f"prompt: {prompt_str} - function not found, "
                 "skipping prompt"
             )
             continue

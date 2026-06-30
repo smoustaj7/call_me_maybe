@@ -1,6 +1,6 @@
 
 
-def bytes_to_unicode():
+def bytes_to_unicode() -> dict[int, str]:
     """
     returns a dict mapping every byte value (0-255) to a printable unicode
     character.
@@ -19,8 +19,8 @@ def bytes_to_unicode():
             bs.append(b)
             cs.append(256 + n)
             n += 1
-    cs = [chr(c) for c in cs]
-    return dict(zip(bs, cs))
+    cn = [chr(c) for c in cs]
+    return dict(zip(bs, cn))
 
 
 def text_to_bpe_alphabet(text: str, byte_encoder: dict) -> str:
