@@ -4,9 +4,9 @@ run:
 install:
 	uv sync
 clean:
-	rm -rf src/__pycache__
-	rm -rf llm_sdk/llm_sdk/__pycache__
-	rm -rf .mypy_cache
+	@rm -rf src/__pycache__
+	@rm -rf llm_sdk/llm_sdk/__pycache__
+	@rm -rf .mypy_cache
 
 lint:
 	flake8 . --exclude llm_sdk,.venv

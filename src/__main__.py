@@ -7,6 +7,8 @@ from .parsing import FunctionLibrary, parse_prompts
 from .json_generation import select_function, extract_arguments
 from .tokenizer import bytes_to_unicode, load_merges
 from llm_sdk import Small_LLM_Model
+import os
+from pyfiglet import Figlet
 
 
 def main() -> None:
@@ -83,6 +85,9 @@ def main() -> None:
     functions_map = {f["name"]: f for f in definitions}
     results = []
 
+    os.system("clear")
+    f = Figlet(font='banner3-D')
+    print(f.renderText('CALL    ME    MAYBE    !'))
     for prompt_str in prompts:
         function_name = select_function(
             prompt_str, definitions, model, vocab,
@@ -104,8 +109,12 @@ def main() -> None:
             "name": function_name,
             "parameters": arguments
         })
-        print(f"{prompt_str}")
-        print(f"  -> function: {function_name}, arguments: {arguments}")
+        print("\n" + "➖" * 60)
+        print(f"Prompt: {prompt_str}")
+        print(f"Function: {function_name}")
+        print(f"Arguments: {arguments}")
+        print("➖" * 60)
+        print("\n")
 
     with open(output_path, 'w') as f:
         json.dump(results, f, indent=2)
