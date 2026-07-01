@@ -154,7 +154,7 @@ def extract_arguments(
             arguments[param_name] = float(decoded_val)
         elif param_type == "integer":
             decoded_val = decode(generated, inv_vocab, byte_decoder)
-            arguments[param_name] = int(decoded_val) 
+            arguments[param_name] = int(decoded_val)
         elif param_type == "boolean":
             is_true = decode(generated, inv_vocab, byte_decoder) == "true"
             arguments[param_name] = True if is_true else False
