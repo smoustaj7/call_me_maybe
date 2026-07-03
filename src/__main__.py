@@ -62,6 +62,8 @@ def main() -> None:
         with open(args.input, 'r') as f:
             input_data = json.load(f)
             prompts = parse_prompts(input_data)
+            if not prompts:
+                return
             print(f"Loaded prompts from: {args.input}")
     except (FileNotFoundError, json.JSONDecodeError) as e:
         print(f"Error processing input: {e}", file=stderr)
